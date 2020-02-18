@@ -4,6 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "preinstall": "go build -buildmode=c-shared -o webrtc.so src/golang/webrtcEndpoint.go",
+    "postinstall": "npm run build",
     "build": "rm -Rf build;node-gyp configure;node-gyp build",
     "test": "mocha"
   },
