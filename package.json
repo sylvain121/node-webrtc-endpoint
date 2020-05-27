@@ -5,7 +5,7 @@
   "main": "index.js",
   "types": "index.d.ts",
   "scripts": {
-    "preinstall": "go build -buildmode=c-shared -o webrtc.so src/golang/webrtcEndpoint.go",
+    "preinstall": "cd src/golang; go build -buildmode=c-archive -o webrtc.a",
     "postinstall": "npm run build",
     "build": "rm -Rf build;node-gyp configure;node-gyp build",
     "test": "mocha"

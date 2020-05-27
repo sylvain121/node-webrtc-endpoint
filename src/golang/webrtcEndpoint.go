@@ -1,6 +1,13 @@
 package main
 
+/*
+// #cgo CFLAGS:  -Wl,--whole-archive
+#cgo LDFLAGS: -rdynamic
+
+#include "wrapper.h"
+*/
 import "C"
+
 import (
 	"encoding/base64"
 	"encoding/json"
@@ -12,15 +19,16 @@ import (
 	"unsafe"
 )
 
+
 var defaultStunServer = []string{"stun:stun.l.google.com:19302"}
 var instance webrtcEndpoint
 
 type webrtcEndpoint struct {
-	videoTrack *webrtc.Track
+	videoTrack       *webrtc.Track
 	localBase64Offer string
 }
 
-func (endpoint *webrtcEndpoint) NewWebRtcEndpoint(base64offer string, stunsUrl []string)(string, error) {
+func (endpoint *webrtcEndpoint) NewWebRtcEndpoint(base64offer string, stunsUrl []string, command func(msg string), control func(msg string), logger func(msg string) ) (string, error) {
 
 	offer := webrtc.SessionDescription{}
 	b, err := base64.StdEncoding.DecodeString(base64offer)
@@ -81,11 +89,38 @@ func (endpoint *webrtcEndpoint) NewWebRtcEndpoint(base64offer string, stunsUrl [
 		panic(err)
 	}
 
+	// command datachannel
+	commandChannel, err := peerConnection.CreateDataChannel("command", nil)
+	if err != nil {
+		panic(err)
+	}
 
+	commandChannel.OnOpen(func() {
+		fmt.Printf("Data channel '%s'-'%d' open.\n", commandChannel.Label(), commandChannel.ID())
+	})
+
+	commandChannel.OnMessage(func(msg webrtc.DataChannelMessage) {
+		command(string(msg.Data))
+	})
+
+
+	controlChannel, err := peerConnection.CreateDataChannel("control", nil)
+	if err != nil {
+		panic(err)
+	}
+
+	controlChannel.OnOpen(func() {
+		fmt.Printf("Data channel '%s'-'%d' open.\n", controlChannel.Label(), controlChannel.ID())
+	})
+
+	controlChannel.OnMessage(func(msg webrtc.DataChannelMessage) {
+		control(string(msg.Data))
+	})
 	// Set the handler for ICE connection state
 	// This will notify you when the peer has connected/disconnected
 	peerConnection.OnICEConnectionStateChange(func(connectionState webrtc.ICEConnectionState) {
-		fmt.Printf("Connection State has changed %s \n", connectionState.String())
+		msg := fmt.Sprintf("Connection State has changed %s \n", connectionState.String())
+		logger(msg)
 	})
 
 	// Set the remote SessionDescription
@@ -122,9 +157,18 @@ func (endpoint *webrtcEndpoint) submitFrame(frame []byte) error {
 
 //export NewWebrtc
 func NewWebrtc(base64Offer *C.char) *C.char {
-	offer := C.GoString(base64Offer);
+	offer := C.GoString(base64Offer)
 	instance = webrtcEndpoint{}
-	localOffer, err := instance.NewWebRtcEndpoint(offer, defaultStunServer)
+	localOffer, err := instance.NewWebRtcEndpoint(offer, defaultStunServer,
+		func(msg string) {
+			C.command_callback(C.CString(msg))
+		},
+		func(msg string) {
+			C.control_callback(C.CString(msg))
+		},
+		func(msg string) {
+			C.logger_callback(C.CString(msg))
+		})
 	if err != nil {
 		panic(err)
 	}
@@ -134,13 +178,12 @@ func NewWebrtc(base64Offer *C.char) *C.char {
 //export submitFrame
 func submitFrame(frame *C.uchar, len C.int) C.int {
 	buffer := unsafe.Pointer(frame)
-	data := C.GoBytes(buffer, len);
+	data := C.GoBytes(buffer, len)
 	err := instance.submitFrame(data)
-	if( err != nil) {
+	if err != nil {
 		return 1
 	}
 	return 0
 }
-
 
 func main() {}

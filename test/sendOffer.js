@@ -6,7 +6,10 @@ let offer = JSON.parse(new Buffer(test, 'base64').toString());
 
 console.log("BROWER OFFER");
 console.log(offer);
-const localOffer = webrtc.init(offer);
+const localOffer = webrtc.init(offer,
+    msg => console.log(`command msg : ${msg}`),
+    msg => console.log(`control msg : ${msg}`),
+    msg => console.log(`info msg : ${msg}`));
 
 console.log("LOCAL OFFER");
 console.log(localOffer);
