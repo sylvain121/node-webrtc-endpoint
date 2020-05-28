@@ -101,6 +101,7 @@ func (endpoint *webrtcEndpoint) NewWebRtcEndpoint(base64offer string, stunsUrl [
 
 	commandChannel.OnMessage(func(msg webrtc.DataChannelMessage) {
 		command(string(msg.Data))
+		fmt.Printf(string(msg.Data))
 	})
 
 
@@ -114,6 +115,7 @@ func (endpoint *webrtcEndpoint) NewWebRtcEndpoint(base64offer string, stunsUrl [
 	})
 
 	controlChannel.OnMessage(func(msg webrtc.DataChannelMessage) {
+		fmt.Printf(string(msg.Data))
 		control(string(msg.Data))
 	})
 	// Set the handler for ICE connection state
