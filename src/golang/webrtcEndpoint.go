@@ -26,6 +26,7 @@ var instance webrtcEndpoint
 type webrtcEndpoint struct {
 	videoTrack       *webrtc.Track
 	localBase64Offer string
+	cursorChannel    *webrtc.DataChannel
 }
 
 func (endpoint *webrtcEndpoint) NewWebRtcEndpoint(base64offer string, stunsUrl []string, command func(msg string), control func(msg string), logger func(msg string) ) (string, error) {
@@ -89,6 +90,12 @@ func (endpoint *webrtcEndpoint) NewWebRtcEndpoint(base64offer string, stunsUrl [
 		panic(err)
 	}
 
+	// cursor
+	endpoint.cursorChannel, err = peerConnection.CreateDataChannel("cursor", nil)
+	if err != nil {
+		panic(err)
+	}
+
 	// command datachannel
 	commandChannel, err := peerConnection.CreateDataChannel("command", nil)
 	if err != nil {
@@ -100,7 +107,6 @@ func (endpoint *webrtcEndpoint) NewWebRtcEndpoint(base64offer string, stunsUrl [
 	})
 
 	commandChannel.OnMessage(func(msg webrtc.DataChannelMessage) {
-		command(string(msg.Data))
 		fmt.Printf(string(msg.Data))
 	})
 
@@ -115,7 +121,6 @@ func (endpoint *webrtcEndpoint) NewWebRtcEndpoint(base64offer string, stunsUrl [
 	})
 
 	controlChannel.OnMessage(func(msg webrtc.DataChannelMessage) {
-		fmt.Printf(string(msg.Data))
 		control(string(msg.Data))
 	})
 	// Set the handler for ICE connection state
@@ -186,6 +191,12 @@ func submitFrame(frame *C.uchar, len C.int) C.int {
 		return 1
 	}
 	return 0
+}
+
+//export sendCursor
+func sendCursor(cstring *C.char) {
+	string := C.GoString(cstring)
+	instance.cursorChannel.SendText(string)
 }
 
 func main() {}

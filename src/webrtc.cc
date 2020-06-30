@@ -76,7 +76,7 @@ NAN_METHOD(__native_init) {
   uv_async_init(loop, &asyncCommandInstance, asyncCommandMsg);
 
   Isolate* isolate = info.GetIsolate();
-  String::Utf8Value str(info[0]);
+  String::Utf8Value str(isolate, info[0]);
   commandCallback  = new Nan::Callback(info[1].As<v8::Function>());
   controlCallback  = new Nan::Callback(info[2].As<v8::Function>());
   infoCallback  = new Nan::Callback(info[3].As<v8::Function>());
@@ -89,15 +89,21 @@ NAN_METHOD(__native_init) {
 }
 
  NAN_METHOD(__native_write_frame){
-  unsigned char * buffer = (unsigned char *) node::Buffer::Data(info[0]->ToObject());
+  unsigned char * buffer = (unsigned char *) node::Buffer::Data(info[0]->ToObject(Isolate::GetCurrent()));
   unsigned int size = info[1]->Uint32Value();
   submitFrame(buffer, size);
+}
+
+NAN_METHOD(__native_send_cursor) {
+		Nan::Utf8String dstr(info[0]);
+		sendCursor(*dstr);
 }
 
 
 NAN_MODULE_INIT(Init) {
   Nan::Set(target, New<String>("__native_init").ToLocalChecked(), GetFunction(New<FunctionTemplate>(__native_init)).ToLocalChecked());
   Nan::Set(target, New<String>("__native_write_frame").ToLocalChecked(), GetFunction(New<FunctionTemplate>(__native_write_frame)).ToLocalChecked());
+  Nan::Set(target, New<String>("__native_send_cursor").ToLocalChecked(), GetFunction(New<FunctionTemplate>(__native_send_cursor)).ToLocalChecked());
 }
 
 NODE_MODULE(webrtc, Init)
