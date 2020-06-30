@@ -107,7 +107,7 @@ func (endpoint *webrtcEndpoint) NewWebRtcEndpoint(base64offer string, stunsUrl [
 	})
 
 	commandChannel.OnMessage(func(msg webrtc.DataChannelMessage) {
-		fmt.Printf(string(msg.Data))
+		command(string(msg.Data))
 	})
 
 
