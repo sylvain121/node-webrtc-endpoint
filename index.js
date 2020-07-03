@@ -25,3 +25,7 @@ module.exports.init = function(offer, commandCallback, controlCallback, infoCall
 module.exports.writeFrame = function(buffer) {
     webrtc.__native_write_frame(buffer, buffer.length);
 };
+
+module.exports.sendCursor = function(data) {
+    webrtc.__native_send_cursor(data);
+}
